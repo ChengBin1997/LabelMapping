@@ -83,12 +83,6 @@ parser.add_argument('--Ifactor',type=float,default=1,help='Init factor')
 
 parser.add_argument('--tfboard_dir',type=str,help='tensorboard dir')
 parser.add_argument('--stable',type=bool,default=False)
-parser.add_argument('--Dmode',type=str,default='Euclid',
-                    help='The distance mode between label and feature: Euclid、Cosine or Dx')
-parser.add_argument('--AF',type=str,default='Identity',
-                    help='Activation Function between label and feature:Identity or tanh')
-parser.add_argument('--Layeradjust',type=str,default='toLabel',
-                    help='toLabel ,base or noFc')
 
 
 
@@ -116,52 +110,40 @@ num_classes = []
 checkpointdir =[]
 if args.dataset == 'cifar10':
     num_classes = 10
-    checkpointdir = './checkpoints/cifar10/'+ args.arch +'-depth'+str(args.depth)
+    checkpointdir = './checkpoints/directlysoft/cifar10/'+ args.arch +'-depth'+str(args.depth)
 else:
     num_classes = 100
-    checkpointdir = './checkpoints/cifar100/'+ args.arch+'-depth'+str(args.depth)
+    checkpointdir = './checkpoints/directlysoft/cifar100/'+ args.arch+'-depth'+str(args.depth)
 
 
 if args.featureNum is not None:
     use_mapping = True
-
+    feature_num = args.featureNum
+    checkpointdir = checkpointdir+'-feature'+str(args.featureNum)
 
     if args.stable == False:
         checkpointdir = checkpointdir+'-stable'
     else:
-        checkpointdir = checkpointdir +'-learnable'
+        checkpointdir = checkpointdir + '-learnable'
 
     print('==> use label_embedding method:')
     if args.MaplabelInit=='one_hot':
-        init_label = torch.eye(num_classes)
+        init_label = torch.load('one_hot_label_100.pth')
         checkpointdir = checkpointdir + '-oneHotInit'
         print(' Init by one_hot_100')
-        args.featureNum = num_classes
     elif args.MaplabelInit=='hadamard':
-        init_label = torch.load('Hadamard_label_15.pth')
+        init_label = torch.load('Hadamard_label_128.pth')
         checkpointdir = checkpointdir + '-hadamardInit'
-        print(' Init by Hadamard_15')
-        args.featureNum = init_label.size(1)
+        print(' Init by Hadamard_128')
     else:
-        init_label = torch.Tensor(num_classes, args.featureNum)
+        init_label = torch.Tensor(num_classes, feature_num)
         init_label.uniform_(-1,1)
-        checkpointdir = checkpointdir + '-randomInit'
+        checkpointdir = checkpointdir + '-random_init'
         print('   Init by random tensor')
-
-    feature_num = args.featureNum
-    checkpointdir = checkpointdir + '-feature' + str(args.featureNum)
 
     if args.Ifactor!=1:
         checkpointdir = checkpointdir + '-HF-'+str(args.Ifactor)
 
-    if args.Dmode != 'Euclid':
-        checkpointdir = checkpointdir + '-D-' +args.Dmode
-
-    if args.AF !='Identity':
-        checkpointdir = checkpointdir + '-AF-' + args.AF
-
-    if args.Layeradjust !='toLabel':
-        checkpointdir = checkpointdir +'-LA-'+args.Layeradjust
 
 args.checkpoint=checkpointdir+args.checkpoint
 
@@ -205,44 +187,8 @@ def main():
     # Model
     print("==> creating model '{}'".format(args.arch))
 
-    if args.arch.startswith('resnext'):
-        model = models.__dict__[args.arch](
-                    cardinality=args.cardinality,
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('densenet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    growthRate=args.growthRate,
-                    compressionRate=args.compressionRate,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('densenet_mapping'):
-        model = models.__dict__[args.arch](
-            num_classes=num_classes,
-            depth=args.depth,
-            growthRate=args.growthRate,
-            compressionRate=args.compressionRate,
-            dropRate=args.drop,
-            MaplabelInit=args.MaplabelInit
-        )
-    elif args.arch.startswith('wrn'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.endswith('resnet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                )
-    elif args.arch.endswith('resnet_mapping'):
+
+    if args.arch.endswith('resnet_mapping'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     depth=args.depth,
@@ -250,9 +196,9 @@ def main():
                     feature_num=args.featureNum,
                     Stable=args.stable,
                     InitFactor = args.Ifactor,
-                    Dmode =args.Dmode,
-                    Afun = args.AF,
-                    Layeradjust = args.Layeradjust
+                    Dmode ='Dx',
+                    Afun = 'Identity',
+                    Layeradjust = 'toLabel'
                 )
     else:
         model = models.__dict__[args.arch](num_classes=num_classes)
@@ -262,8 +208,6 @@ def main():
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     # Resume
     title = 'cifar-10-' + args.arch
@@ -273,6 +217,22 @@ def main():
         tfboard_dir = args.tfboard_dir
     else:
         tfboard_dir = args.checkpoint
+
+    criterion = nn.MSELoss()
+    run_decay = []
+    no_decay = []
+    for name, p in model.named_parameters():
+        if 'maplabel' in name:
+            print(p)
+            no_decay += [p]
+        else:
+            run_decay += [p]
+
+
+    # pfront = parmlist.remove(model.module.maplabel)
+    optimizer = optim.SGD([{'params': run_decay},
+                           {'params': no_decay, 'lr': 0},
+                           ], lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     if args.resume:
         # Load checkpoint.
@@ -297,6 +257,7 @@ def main():
         return
 
     b = args.b
+
 
     for epoch in range(start_epoch, args.epochs):
         adjust_learning_rate(optimizer, epoch)
@@ -366,8 +327,7 @@ def train(trainloader, model, criterion, optimizer, epoch, use_cuda,b):
         # compute output
         outputs = model(inputs)
         outputs = outputs*b
-        loss = criterion(outputs, targets)
-
+        loss = criterion(outputs, model.module.maplabel[targets, :].type(torch.cuda.FloatTensor))
         # measure accuracy and record loss
         prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
         losses.update(loss.data.item(), inputs.size(0))
@@ -423,7 +383,7 @@ def test(testloader, model, criterion, epoch, use_cuda):
 
         # compute output
         outputs = model(inputs)
-        loss = criterion(outputs, targets)
+        loss = criterion(outputs, model.module.maplabel[targets, :].type(torch.cuda.FloatTensor))
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))

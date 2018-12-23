@@ -68,4 +68,5 @@ from .resnext import *
 from .wrn import *
 from .preresnet import *
 from .densenet import *
-from .resnet_mapping import *
+from .densenet_mapping import *
+

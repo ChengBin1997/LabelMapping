@@ -4,7 +4,7 @@ import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
-from .misc import *   
+#from .misc import *
 
 __all__ = ['make_image', 'show_batch', 'show_mask', 'show_mask_single']
 
@@ -102,9 +102,11 @@ def show_mask(images, masklist, Mean=(2, 2, 2), Std=(0.5,0.5,0.5)):
         plt.axis('off')
 
 
-
-# x = torch.zeros(1, 3, 3)
-# out = colorize(x)
-# out_im = make_image(out)
-# plt.imshow(out_im)
-# plt.show()
+'''
+x = torch.rand(1, 3, 3)
+out = colorize(x)
+out_im = make_image(out)
+plt.imshow(x)
+plt.imshow(out_im)
+plt.show()
+'''
