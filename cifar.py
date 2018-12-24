@@ -138,9 +138,9 @@ if args.featureNum is not None:
         print(' Init by one_hot_100')
         args.featureNum = num_classes
     elif args.MaplabelInit=='hadamard':
-        init_label = torch.load('Hadamard_label_15.pth')
+        init_label = torch.load('Hadmard_128_Cifar100_label.pth')
         checkpointdir = checkpointdir + '-hadamardInit'
-        print(' Init by Hadamard_15')
+        print(' Init by Hadmard_128')
         args.featureNum = init_label.size(1)
     else:
         init_label = torch.Tensor(num_classes, args.featureNum)

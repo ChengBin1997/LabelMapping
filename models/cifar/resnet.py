@@ -270,7 +270,9 @@ class activateF():
     # add a tanh Function between label W and feature x
     def tanh(x):
         return torch.tanh(x)
-
+    # add a relu Function between label W and feature x
+    def relu(x):
+        return torch.nn.funtional.relu(x)
 
 
 class mappinglayer(nn.Module):
@@ -278,7 +280,7 @@ class mappinglayer(nn.Module):
                  Stable=False, Dmode='Euclid', Afun='Identity',Layeradjust = 'to_label'):
         super(mappinglayer, self).__init__()
 
-        if Stable==True:
+        if Stable==False:
             self.maplabel = MaplabelInit.cuda()*InitFactor
             print("==> Label is stable")
         else:
@@ -317,8 +319,11 @@ class mappinglayer(nn.Module):
             self.af = activateF.Identity
             print("==> No activation function between label and feature")
         elif Afun == 'tanh':
-            self.af = activateF.Identity
+            self.af = activateF.tanh
             print("==> Add a tanh Function between label and feature")
+        elif Afun == 'relu':
+            self.af = activateF.relu
+            print("==> Add a relu Function between label and feature")
 
 
     def forward(self, x):
