@@ -1,0 +1,5 @@
+python cifar.py -a resnet_mapping --depth 20 --epochs 180 --schedule 80 120 160 --gamma 0.1 --wd 1e-4 --gpu-id 2 --featureNum 128 --MaplabelInit one_hot --dataset cifar100
+python cifar.py -a resnet_mapping --depth 32 --epochs 180 --schedule 80 120 160 --gamma 0.1 --wd 1e-4 --gpu-id 2 --featureNum 128 --MaplabelInit one_hot --dataset cifar100
+python cifar.py -a resnet_mapping --depth 44 --epochs 180 --schedule 80 120 160 --gamma 0.1 --wd 1e-4 --gpu-id 2 --featureNum 128 --MaplabelInit one_hot --dataset cifar100
+python cifar.py -a resnet_mapping --depth 56 --epochs 180 --schedule 80 120 160 --gamma 0.1 --wd 1e-4 --gpu-id 2 --featureNum 128 --MaplabelInit one_hot --dataset cifar100
+python cifar.py -a resnet_mapping --depth 110 --epochs 180 --schedule 80 120 160 --gamma 0.1 --wd 1e-4 --gpu-id 2 --featureNum 128 --MaplabelInit one_hot --dataset cifar100

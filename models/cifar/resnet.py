@@ -277,10 +277,10 @@ class activateF():
 
 class mappinglayer(nn.Module):
     def __init__(self, depth, MaplabelInit, num_classes, feature_num, InitFactor=1,
-                 Stable=False, Dmode='Euclid', Afun='Identity',Layeradjust = 'to_label'):
+                 Stable=False, Dmode='Euclid', Afun='Identity',Layeradjust = 'toLabel'):
         super(mappinglayer, self).__init__()
 
-        if Stable==False:
+        if Stable==True:
             self.maplabel = MaplabelInit.cuda()*InitFactor
             print("==> Label is stable")
         else:

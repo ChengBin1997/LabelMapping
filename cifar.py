@@ -126,7 +126,7 @@ if args.featureNum is not None:
     use_mapping = True
 
 
-    if args.stable == False:
+    if args.stable == True:
         checkpointdir = checkpointdir+'-stable'
     else:
         checkpointdir = checkpointdir +'-learnable'
