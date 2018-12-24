@@ -304,25 +304,25 @@ class mappinglayer(nn.Module):
 
         if Dmode == 'Euclid':
             print("==> Compute the Euclidean distance between label and feature ")
-            self.com_score =comdist.Euclid
+            self.com_score =self.Euclid
         elif Dmode == 'Cosine':
             print("==> Compute the Cosine distance between label and feature ")
-            self.com_score = comdist.Cosine
+            self.com_score = self.Cosine
         elif Dmode == 'Dx':
-            self.com_score = comdist.Dx
+            self.com_score = self.Dx
             print("==> Directly compute x")
 
         if InitFactor!=1:
             print('InitFactor:'+str(InitFactor))
 
         if Afun == 'Identity':
-            self.af = activateF.Identity
+            self.af = self.Identity
             print("==> No activation function between label and feature")
         elif Afun == 'tanh':
-            self.af = activateF.tanh
+            self.af = self.tanh
             print("==> Add a tanh Function between label and feature")
         elif Afun == 'relu':
-            self.af = activateF.relu
+            self.af = self.relu
             print("==> Add a relu Function between label and feature")
 
 
@@ -332,6 +332,42 @@ class mappinglayer(nn.Module):
         W = self.maplabel
         distance=self.com_score(W,x)
         return distance
+
+    def Euclid(self,W,x):
+        batch_size = x.size(0)
+        num_classes = W.size(0)
+        dists = torch.zeros(num_classes, batch_size).cuda()
+        dists += torch.sum(x ** 2, dim=1).reshape(1, batch_size)
+        dists += torch.sum(W ** 2, dim=1).reshape(num_classes, 1)
+        dists -= 2 * W.mm(x.t())
+        dists = torch.clamp(dists, min=0)
+        dists = torch.sqrt(dists)
+        dists = -1 * dists
+        dists = dists.t()
+        return dists
+
+    def Cosine(self,W,x):
+        W_norm=W.norm(p=2,dim=1)
+        x_norm=x.norm(p=2,dim=1)
+        cos_theta=x.mm(W.t())/(W_norm*x_norm.view(-1,1))
+        cos_theta = cos_theta.clamp(-1, 1)
+        return cos_theta
+
+    def Dx(self,W,x):
+        return x
+
+    def Identity(self,x):
+        return x
+
+    def tanh(self,x):
+        return torch.tanh(x)
+
+    def relu(self,x):
+        return torch.nn.funtional.relu(x)
+
+
+
+
 
 def resnet_mapping(**kwargs):
     #Constructs a learnable_label_ResNet model.

@@ -118,28 +118,31 @@ else:
 
 if args.featureNum is not None:
     use_mapping = True
-    feature_num = args.featureNum
-    checkpointdir = checkpointdir+'-feature'+str(args.featureNum)
 
-    if args.stable == False:
+    if args.stable == True:
         checkpointdir = checkpointdir+'-stable'
     else:
-        checkpointdir = checkpointdir + '-learnable'
+        checkpointdir = checkpointdir +'-learnable'
 
     print('==> use label_embedding method:')
     if args.MaplabelInit=='one_hot':
-        init_label = torch.load('one_hot_label_100.pth')
+        init_label = torch.eye(num_classes)
         checkpointdir = checkpointdir + '-oneHotInit'
         print(' Init by one_hot_100')
+        args.featureNum = num_classes
     elif args.MaplabelInit=='hadamard':
-        init_label = torch.load('Hadamard_label_128.pth')
+        init_label = torch.load('Hadmard_128_Cifar100_label.pth')
         checkpointdir = checkpointdir + '-hadamardInit'
-        print(' Init by Hadamard_128')
+        print(' Init by Hadmard_128')
+        args.featureNum = init_label.size(1)
     else:
-        init_label = torch.Tensor(num_classes, feature_num)
+        init_label = torch.Tensor(num_classes, args.featureNum)
         init_label.uniform_(-1,1)
-        checkpointdir = checkpointdir + '-random_init'
+        checkpointdir = checkpointdir + '-randomInit'
         print('   Init by random tensor')
+
+    feature_num = args.featureNum
+    checkpointdir = checkpointdir + '-feature' + str(args.featureNum)
 
     if args.Ifactor!=1:
         checkpointdir = checkpointdir + '-HF-'+str(args.Ifactor)
@@ -193,7 +196,7 @@ def main():
                     num_classes=num_classes,
                     depth=args.depth,
                     MaplabelInit = init_label,
-                    feature_num=args.featureNum,
+                    feature_num=num_classes,
                     Stable=args.stable,
                     InitFactor = args.Ifactor,
                     Dmode ='Dx',
@@ -219,19 +222,19 @@ def main():
         tfboard_dir = args.checkpoint
 
     criterion = nn.MSELoss()
-    run_decay = []
-    no_decay = []
+    others = []
+    maplable = []
     for name, p in model.named_parameters():
         if 'maplabel' in name:
             print(p)
-            no_decay += [p]
+            maplable += [p]
         else:
-            run_decay += [p]
+            others += [p]
 
 
     # pfront = parmlist.remove(model.module.maplabel)
-    optimizer = optim.SGD([{'params': run_decay},
-                           {'params': no_decay, 'lr': 0},
+    optimizer = optim.SGD([{'params': others},
+                           {'params': maplable, 'lr': 0},
                            ], lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     if args.resume:
